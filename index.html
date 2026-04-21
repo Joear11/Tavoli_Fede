@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>18° Fede - Trova il tuo Posto</title>
+
+<style>
+:root {
+    --magenta-deep: #880e4f;
+    --magenta-bright: #c2185b;
+    --pink-soft: #fce4ec;
+    --glass-bg: rgba(255, 255, 255, 0.9);
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #ad1457 0%, var(--magenta-deep) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 450px;
+    background: var(--glass-bg);
+    border-radius: 30px;
+    padding: 40px 25px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+h1 {
+    color: var(--magenta-bright);
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 15px;
+    border: 2px solid var(--pink-soft);
+    text-align: center;
+}
+
+button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 15px;
+    border: none;
+    border-radius: 15px;
+    background: var(--magenta-bright);
+    color: white;
+    font-weight: bold;
+}
+
+#result {
+    margin-top: 30px;
+    display: none;
+}
+
+.table-display {
+    background: var(--magenta-bright);
+    color: white;
+    padding: 15px;
+    border-radius: 15px;
+}
+
+.guests-list {
+    list-style: none;
+    padding: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Fede 18 🌸</h1>
+    <p>Trova il tuo tavolo</p>
+
+    <input type="text" id="nameInput" placeholder="Cognome e Nome">
+    <button onclick="cercaTavolo()">CERCA</button>
+
+    <div id="result">
+        <div class="table-display">
+            <div id="tableName"></div>
+        </div>
+        <ul id="guestsList" class="guests-list"></ul>
+    </div>
+</div>
+
+<script>
+const databaseInvitati = [
+
+/* LAPISLAZZULI */
+{ Nome: "Saviano Raffaele", Tavolo: "Lapislazzuli" },
+{ Nome: "Cristofaro Pina", Tavolo: "Lapislazzuli" },
+{ Nome: "Nonna Giovanna", Tavolo: "Lapislazzuli" },
+{ Nome: "Maione Rossella", Tavolo: "Lapislazzuli" },
+{ Nome: "Cattolico Assunta", Tavolo: "Lapislazzuli" },
+{ Nome: "Saviano Silvestro", Tavolo: "Lapislazzuli" },
+{ Nome: "Saviano Carmela", Tavolo: "Lapislazzuli" },
+
+/* MALACHITE */
+{ Nome: "Russiello Agostino", Tavolo: "Malachite" },
+{ Nome: "Caporale Rosa", Tavolo: "Malachite" },
+{ Nome: "Ambrosino Francesco", Tavolo: "Malachite" },
+{ Nome: "Serafino Manuela", Tavolo: "Malachite" },
+{ Nome: "Russo Michele", Tavolo: "Malachite" },
+{ Nome: "Ariano Mena", Tavolo: "Malachite" },
+{ Nome: "Mainardi Antonia", Tavolo: "Malachite" },
+
+/* TURCHESE */
+{ Nome: "Celiento Giuseppe", Tavolo: "Turchese" },
+{ Nome: "Laurenza Raffaella", Tavolo: "Turchese" },
+{ Nome: "Borrelli Francesco", Tavolo: "Turchese" },
+{ Nome: "D'arcangelo Rosamunda", Tavolo: "Turchese" },
+{ Nome: "Di Lorenzo Stefano", Tavolo: "Turchese" },
+{ Nome: "Costanzo Rosita", Tavolo: "Turchese" },
+{ Nome: "Spena Francesco", Tavolo: "Turchese" },
+{ Nome: "Tesoro Giovanna", Tavolo: "Turchese" },
+{ Nome: "Bambina Spena", Tavolo: "Turchese" },
+
+/* PIETRA DI LUNA */
+{ Nome: "Rossetti Enzo", Tavolo: "Pietra di Luna" },
+{ Nome: "De Iasio Florinda", Tavolo: "Pietra di Luna" },
+{ Nome: "Biasucci Bruno", Tavolo: "Pietra di Luna" },
+{ Nome: "Tempesta Silvana", Tavolo: "Pietra di Luna" },
+{ Nome: "Di Tommaso Michele", Tavolo: "Pietra di Luna" },
+{ Nome: "Coppola Valeria", Tavolo: "Pietra di Luna" },
+{ Nome: "Aloi Bruno", Tavolo: "Pietra di Luna" },
+{ Nome: "Gallo Patrizia", Tavolo: "Pietra di Luna" }
+
+];
+
+// NORMALIZZAZIONE
+function norm(s) {
+    return s.toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+}
+
+// LEVENSHTEIN
+function distanza(a, b) {
+    const m = [];
+    for (let i = 0; i <= b.length; i++) m[i] = [i];
+    for (let j = 0; j <= a.length; j++) m[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            m[i][j] = b[i-1] === a[j-1]
+                ? m[i-1][j-1]
+                : Math.min(m[i-1][j-1]+1, m[i][j-1]+1, m[i-1][j]+1);
+        }
+    }
+    return m[b.length][a.length];
+}
+
+function cercaTavolo() {
+    const input = norm(document.getElementById("nameInput").value);
+
+    if (!input) return alert("Inserisci un nome");
+
+    let persona = databaseInvitati.find(p =>
+        norm(p.Nome).includes(input)
+    );
+
+    if (!persona) {
+        let best = null, min = 999;
+
+        databaseInvitati.forEach(p => {
+            let d = distanza(input, norm(p.Nome));
+            if (d < min) {
+                min = d;
+                best = p;
+            }
+        });
+
+        if (min <= 3) persona = best;
+    }
+
+    if (!persona) return alert("Nome non trovato");
+
+    document.getElementById("tableName").innerText = persona.Tavolo;
+
+    const compagni = databaseInvitati.filter(p =>
+        p.Tavolo === persona.Tavolo && p.Nome !== persona.Nome
+    );
+
+    document.getElementById("guestsList").innerHTML =
+        compagni.map(c => `<li>${c.Nome}</li>`).join("");
+
+    document.getElementById("result").style.display = "block";
+}
+</script>
+
+</body>
+</html>
